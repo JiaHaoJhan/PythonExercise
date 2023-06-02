@@ -2,7 +2,11 @@ from tkinter import *
 from tkinter import messagebox
 from random import randint, choice, shuffle
 import pyperclip
+import json
 
+BUTTON_WIDTH = 16
+ENTRY_WIDTH = 25
+PROGRAM_TITLE = "Password Manager"
 
 # ---------------------------- PASSWORD GENERATOR ------------------------------- #
 def password_generator():
@@ -23,31 +27,62 @@ def password_generator():
     pyperclip.copy(password)
 
 
+# ---------------------------- FIND PASSWORD ------------------------------- #
+def website_search_password():
+    website_data = website_entry.get()
+    # 1. no data
+    try:
+        with open("password_manager.json", 'r') as data_open:
+            data = json.load(data_open)
+    except FileNotFoundError:
+        messagebox.showinfo(title=PROGRAM_TITLE, message="No Data File Found!")
+    else:
+        if website_data in data:
+            load_email = data[website_data]['email']
+            load_password = data[website_data]['password']
+            messagebox.showinfo(title=PROGRAM_TITLE,
+                                message=f"Your {website_data}\n Email: {load_email} \nPassword: {load_password}")
+            pyperclip.copy(load_password)
+        else:
+            messagebox.showinfo(title=PROGRAM_TITLE, message=f"No details for the {website_data} exists!")
+
+
+
+
 # ---------------------------- SAVE PASSWORD ------------------------------- #
 def save_data():
     website_data = website_entry.get()
     email_data = email_entry.get()
     password_data = password_entry.get()
+    new_data = {
+        website_data: {
+            "email": email_data,
+            "password": password_data
+        }
+    }
 
     if len(website_data) == 0 or len(email_data) == 0 or len(password_data) == 0:
         messagebox.showinfo(title="Oops!!", message="Please don't leave any fields empty! ")
     else:
-        is_ok = messagebox.askokcancel(title="Password Manager", message=f"These are the details:\n"
-                                                                         f"{website_data}\n"
-                                                                         f"{email_data}\n"
-                                                                         f"{password_data}\n"
-                                                                         f"Is it ok to save? ")
-        if is_ok:
-            with open("password_manager.txt", 'a') as data:
-                data.write(f"{website_data} | {email_data} | {password_data} \n")
-            website_entry.delete(0, "end")
-            password_entry.delete(0, "end")
-            messagebox.showinfo(title="Password Manager", message="Save succeed~")
+        try:
+            with open("password_manager.json", 'r') as data_open:
+                data = json.load(data_open)
+        except FileNotFoundError:
+            with open("password_manager.json", 'w') as data_open:
+                json.dump(new_data, data_open, indent=4)
+        else:
+            data.update(new_data)
+            with open("password_manager.json", 'w') as data_open:
+                json.dump(data, data_open, indent=4)
+
+        website_entry.delete(0, END)
+        password_entry.delete(0, END)
+        messagebox.showinfo(title=PROGRAM_TITLE, message="Save succeed~")
 
 
 # ---------------------------- UI SETUP ------------------------------- #
 window = Tk()
-window.title("Password manager")
+window.title(PROGRAM_TITLE)
 window.config(padx=50, pady=50)
 
 canvas = Canvas(width=200, height=200)
@@ -58,23 +93,25 @@ canvas.grid(column=1, row=0)
 # website
 website_label = Label(text="Website:")
 website_label.grid(column=0, row=1)
-website_entry = Entry(width=45)
-website_entry.grid(column=1, row=1, columnspan=2)
+website_entry = Entry(width=ENTRY_WIDTH)
+website_entry.grid(column=1, row=1)
 website_entry.focus()
+website_search_button = Button(text="Search", width=BUTTON_WIDTH, command=website_search_password)
+website_search_button.grid(column=2, row=1)
 
 # email
 email_label = Label(text="Email/Username:")
 email_label.grid(column=0, row=2)
-email_entry = Entry(width=45)
+email_entry = Entry(width=ENTRY_WIDTH)
 email_entry.insert(0, "myEmail@gmail.com")
-email_entry.grid(column=1, row=2, columnspan=2)
+email_entry.grid(column=1, row=2)
 
 # password
 password_label = Label(text="Password:")
 password_label.grid(column=0, row=3)
-password_entry = Entry(width=28)
+password_entry = Entry(width=ENTRY_WIDTH)
 password_entry.grid(column=1, row=3)
-password_button = Button(text="Generate Password", command=password_generator)
+password_button = Button(text="Generate Password", width=BUTTON_WIDTH, command=password_generator)
 password_button.grid(column=2, row=3)
 
 
